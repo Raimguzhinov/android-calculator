@@ -1,5 +1,6 @@
 package com.example.calculator
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
@@ -12,6 +13,7 @@ class MainActivity : AppCompatActivity() {
     private var eqResult = 0.0
     private var inputOperand = false
 
+    @SuppressLint("CutPasteId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -198,15 +200,8 @@ class MainActivity : AppCompatActivity() {
         '+' to 1,
         '-' to 1,
         '×' to 2,
-        '÷' to 2,
-        '~' to 3
+        '÷' to 2
     )
-
-    private fun checkPreviousOperator() {
-        if(cache.takeLast(1).matches(Regex("[+\\-÷×]"))){
-            cache = cache.dropLast(1)
-        }
-    }
 
     private fun readNumber(buffer: String) : String {
         var number: String = ""
@@ -243,8 +238,6 @@ class MainActivity : AppCompatActivity() {
                 }
                 operatorsStack.pop()
             } else if(priorityMap.containsKey(symbol)) {
-                if (symbol == '-' && (position == 0 || (position > 1 && priorityMap.containsKey(cache[position-1]))))
-                    symbol = '~';
                 while(operatorsStack.isNotEmpty() && priorityMap[operatorsStack.peek()]!! >= priorityMap[symbol]!!) {
                     postfixExpr += operatorsStack.pop()
                 }
@@ -272,11 +265,6 @@ class MainActivity : AppCompatActivity() {
                 val number: String = readNumber(postfixExpr)
                 localsStack.push(number.toDouble())
             } else if(priorityMap.containsKey(symbol)) {
-                if (symbol == '~') {
-                    val last: Double = if (localsStack.isNotEmpty()) localsStack.pop() else 0.0
-                    localsStack.push(execute('-', 0.0, last))
-                    continue;
-                }
                 var second: Double = if (localsStack.isNotEmpty()) localsStack.pop() else 0.0
                 if (symbol == '÷' && second == 0.0) {
                     cache = "Error"

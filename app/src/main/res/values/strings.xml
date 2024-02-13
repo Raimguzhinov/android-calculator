@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Calculator</string>
-    <string name="formula">formula</string>
+    <string name="formula">Let\'s Calculate</string>
     <string name="res">0</string>
     <string name="clear">A/C</string>
     <string name="mod">%</string>
