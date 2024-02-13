@@ -3,18 +3,15 @@ package com.example.calculator
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
-import kotlin.math.abs
 import java.util.Stack
 
-private var firstOperand = ""
-private var secondOperand = ""
-private var eqOperator = ""
-private var cache = ""
-private var eqResult = 0.0
-private var inputStateStart = false
-private var inputStateStop = false
-
 class MainActivity : AppCompatActivity() {
+    private var operand = ""
+    private var eqOperator = ""
+    private var cache = ""
+    private var eqResult = 0.0
+    private var inputOperand = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -48,136 +45,150 @@ class MainActivity : AppCompatActivity() {
             button.setOnClickListener {
                 button.text.toString()
                 when {
+
                     button.text.matches(Regex("[0-9]")) -> {
-                        if (inputStateStart && inputStateStop) {
-                            firstOperand = ""
-                            secondOperand = ""
-                            eqOperator = ""
-                            formula.text = ""
-                            result.text = "0"
-                            cache = ""
+                        if(!inputOperand) {
+                            operand = ""
+                            inputOperand = true
                         }
-                        inputStateStop = false
-                        if (eqOperator.isEmpty()) {
-                            firstOperand += button.text
-                            result.text = firstOperand
-                            cache += firstOperand
-                        } else {
-                            secondOperand += button.text
-                            result.text = secondOperand
-                            cache += eqOperator
-                            cache += secondOperand
-                        }
-                        inputStateStart = true
+                        operand += button.text
+                        cache += button.text
+                        result.text = cache
                         findViewById<com.google.android.material.button.MaterialButton>(R.id.clear).text = "C"
                     }
-                    button.text.matches(Regex("[+–×÷]")) -> {
-                        inputStateStop = false
-                        secondOperand = ""
-                        if (firstOperand.isEmpty()) {
-                            firstOperand = "0"
+
+                    button.text.matches(Regex("[+\\-×÷]")) -> {
+                        if(!inputOperand) {
+                            cache = cache.dropLast(1)
                         }
-                        if (result.text.toString().isNotEmpty()) {
-                            eqOperator = button.text.toString()
-                            result.text = "0"
+                        if(cache.isEmpty()) {
+                            operand = "0"
+                            cache += operand
                         }
+                        eqOperator = button.text.toString()
+                        cache += eqOperator
+
+                        inputOperand = false
+                        result.text = cache
                     }
+
                     button.text == "=" -> {
-                        if (secondOperand.isNotEmpty() && eqOperator.isNotEmpty()) {
-                            formula.text = cache
-                            eqResult = evaluateExpression().toDouble()
-                            if (eqResult % 1.0 == 0.0) {
-                                firstOperand = eqResult.toInt().toString()
+                        if(!inputOperand) {
+                            cache = cache.dropLast(1)
+                        }
+                        formula.text = cache
+                        if(cache.isNotEmpty()) {
+                            var check = evaluateExpression()
+                            if(check == "Error") {
+                                result.text = cache
+                                cache = ""
+                                operand = ""
                             } else {
-                                firstOperand = eqResult.toString()
+                                eqResult = check.toDouble()
+                                if (eqResult % 1.0 == 0.0) {
+                                    operand = eqResult.toInt().toString()
+                                } else {
+                                    operand = eqResult.toString()
+                                }
+                                cache = operand
+                                result.text = operand
                             }
-                            result.text = firstOperand
                         }
-                        inputStateStop = true
-                    }
-                    button.text == "." -> {
-                        if (eqOperator.isEmpty() && !firstOperand.contains(".")) {
-                            if (firstOperand.isEmpty()) firstOperand += "0${button.text}"
-                            else firstOperand += button.text
-                            result.text = firstOperand
-                        } else if (!secondOperand.contains(".")) {
-                            if (secondOperand.isEmpty()) secondOperand += "0${button.text}"
-                            else secondOperand += button.text
-                            result.text = secondOperand
-                        }
-                    }
-                    button.text == "A/C" -> {
-                        firstOperand = ""
-                        secondOperand = ""
                         eqOperator = ""
+                        inputOperand = true
+                    }
+
+                    button.text == "." -> {
+                        if(operand.isEmpty()) {
+                            operand += "0"
+                        }
+                        if(!operand.contains(".")) {
+                            operand += "."
+                            cache += "."
+
+                        }
+                        result.text = cache
+                    }
+
+                    button.text == "A/C" -> {
+                        eqOperator = ""
+                        operand = ""
                         formula.text = ""
                         result.text = "0"
                         cache = ""
                     }
+
                     button.text == "C" -> {
-                        firstOperand = ""
-                        secondOperand = ""
+                        operand = ""
                         eqOperator = ""
                         formula.text = ""
                         result.text = "0"
                         button.text = "A/C"
                         cache = ""
                     }
+
                     button.text == "±" -> {
-                        cache = cache.dropLast(1)
-                        if (eqOperator.isEmpty()) {
-                            if(!firstOperand.contains("-")) {
-                                if (firstOperand.isEmpty()) firstOperand += "–0"
-                                else {
-                                    firstOperand = "–$firstOperand"
-                                }
+                        if(inputOperand) {
+                            var newOperand = operand
+                            if(operand.contains("-")) {
+                                newOperand = if(cache == operand) operand.takeLast(operand.length - 1) else operand.takeLast(operand.length - 2).dropLast(1)
                             } else {
-                                val num = firstOperand.toDouble()
-                                if (firstOperand.isEmpty()) firstOperand = "0"
-                                else {
-                                    firstOperand = abs(num).toString()
-                                }
+                                newOperand = if(cache == operand) ("-" + operand.takeLast(operand.length)) else "(-$operand)"
                             }
-                            result.text = firstOperand
-                            cache += firstOperand
+                            cache = cache.dropLast(operand.length)
+                            operand = newOperand
+                            cache += operand
                         }
-                        else {
-                            if(!secondOperand.contains("–")) {
-                                if (secondOperand.isEmpty()) secondOperand += "–0"
-                                else {
-                                    secondOperand = "–$secondOperand"
-                                    cache += "($secondOperand)"
-                                }
-                            } else {
-                                val num = secondOperand.toDouble()
-                                if (secondOperand.isEmpty()) secondOperand = "0"
-                                else {
-                                    secondOperand = abs(num).toString()
-                                    cache += secondOperand
-                                }
-                            }
-                            result.text = secondOperand
-                        }
+                        result.text = cache
                     }
+
                     button.text == "%" -> {
-                        if (eqOperator.isEmpty() && firstOperand.isNotEmpty()) {
-                            val num = firstOperand.toDouble()
-                            firstOperand = (num / 100).toString()
-                            result.text = firstOperand
-                        } else if (secondOperand.isNotEmpty()) {
-                            if (eqOperator.matches((Regex("[×÷]")))) {
-                                val num = secondOperand.toDouble()
-                                secondOperand = (num / 100).toString()
-                            } else {
-                                val num1 = firstOperand.toDouble()
-                                val num2 = secondOperand.toDouble()
-                                secondOperand = (num1 * num2 / 100).toString()
+                        if(inputOperand) {
+                            val num = 0
+                            var brackets = false
+                            if (eqOperator.matches(Regex("[×÷]")) || operand == cache) {
+                                cache = cache.dropLast(operand.length)
+                                if(operand.contains("(")) {
+                                    operand = operand.takeLast(operand.length - 1).dropLast(1)
+                                    brackets = true
+                                }
+                                val num = operand.toDouble()
+                                operand = (num / 100).toString()
+                                cache += if (brackets) "($operand)" else operand
+                                result.text = cache
+                            }
+                            else {
+                                cache = cache.dropLast(operand.length)
+                                var tempCache = cache
+                                var check = evaluateExpression()
+                                if(check == "Error") {
+                                    result.text = cache
+                                    cache = ""
+                                    eqOperator = ""
+                                    operand = ""
+                                } else {
+                                    eqResult = check.toDouble()
+                                    cache = tempCache
+                                    if(operand.contains("(")) {
+                                        operand = operand.takeLast(operand.length - 1).dropLast(1)
+                                        brackets = true
+                                    }
+                                    eqResult = eqResult / 100 * operand.toDouble()
+                                    if (eqResult % 1.0 == 0.0) {
+                                        operand = eqResult.toInt().toString()
+                                    } else {
+                                        operand = eqResult.toString()
+                                    }
+                                    cache += if (brackets) "($operand)" else operand
+                                    result.text = cache
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
     }
 
     private var postfixExpr: String = ""
@@ -196,7 +207,6 @@ class MainActivity : AppCompatActivity() {
             cache = cache.dropLast(1)
         }
     }
-
 
     private fun readNumber(buffer: String) : String {
         var number: String = ""
@@ -271,7 +281,7 @@ class MainActivity : AppCompatActivity() {
                 if (symbol == '÷' && second == 0.0) {
                     cache = "Error"
                     postfixExpr = ""
-                    return ""
+                    return "Error"
                 }
                 var first: Double = if (localsStack.isNotEmpty()) localsStack.pop() else 0.0
                 localsStack.push(execute(symbol, first, second))
@@ -282,5 +292,4 @@ class MainActivity : AppCompatActivity() {
         cache = "" + localsStack.pop()
         return cache
     }
-
 }
